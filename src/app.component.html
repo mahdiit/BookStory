@@ -1,0 +1,68 @@
+<main class="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-amber-50 text-stone-800">
+  <div class="w-full max-w-2xl mx-auto">
+    <header class="text-center mb-6">
+      <h1 class="text-4xl font-bold text-amber-700">مسابقه بزرگ جنگل</h1>
+      <p class="text-stone-600 mt-2">یک داستان درباره سرعت، دوستی و یک اتفاق غیرمنتظره</p>
+    </header>
+
+    @switch (status()) {
+      @case ('generating') {
+        <div class="flex flex-col items-center justify-center p-8 bg-white/50 rounded-2xl shadow-lg aspect-[4/5] w-full">
+          <svg class="animate-spin h-12 w-12 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p class="mt-4 text-lg font-semibold text-amber-700">{{ generationMessage() }}</p>
+          <p class="text-stone-500">لطفاً کمی صبر کنید...</p>
+        </div>
+      }
+      @case ('ready') {
+        @if (currentPage(); as page) {
+          <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-500 w-full">
+            <!-- Image Container -->
+            <div class="w-full aspect-video bg-amber-100 flex items-center justify-center">
+              @if (page.imageUrl) {
+                <img [src]="page.imageUrl" alt="تصویر صفحه {{ currentPageIndex() + 1 }}" class="w-full h-full object-cover animate-fade-in">
+              } @else {
+                <div class="w-full h-full flex items-center justify-center">
+                   <svg class="animate-spin h-8 w-8 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              }
+            </div>
+            <!-- Story Text Container -->
+            <div class="p-6 md:p-8">
+              <p class="text-lg md:text-xl leading-relaxed text-right text-stone-700 h-48 overflow-y-auto">
+                {{ page.text }}
+              </p>
+            </div>
+          </div>
+          <!-- Navigation -->
+          <div class="flex items-center justify-between mt-6 px-2">
+            <button (click)="nextPage()" [disabled]="isLastPage()"
+                    class="px-6 py-2 bg-amber-600 text-white rounded-full shadow-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all disabled:bg-stone-300 disabled:cursor-not-allowed">
+              بعدی
+            </button>
+            <span class="text-stone-600 font-semibold">صفحه {{ currentPageIndex() + 1 }} از {{ totalPages }}</span>
+            <button (click)="previousPage()" [disabled]="isFirstPage()"
+                    class="px-6 py-2 bg-amber-600 text-white rounded-full shadow-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all disabled:bg-stone-300 disabled:cursor-not-allowed">
+              قبلی
+            </button>
+          </div>
+        }
+      }
+      @case ('error') {
+        <div class="flex flex-col items-center justify-center p-8 bg-red-100 border-2 border-red-300 rounded-2xl shadow-lg aspect-[4/5] w-full">
+          <h2 class="text-2xl font-bold text-red-700">خطا!</h2>
+          <p class="mt-2 text-red-600 text-center">{{ errorMessage() }}</p>
+           <button (click)="generateStoryAndImages()"
+                    class="mt-6 px-6 py-2 bg-amber-600 text-white rounded-full shadow-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all">
+              دوباره تلاش کن
+            </button>
+        </div>
+      }
+    }
+  </div>
+</main>
