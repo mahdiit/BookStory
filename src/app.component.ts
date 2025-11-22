@@ -2,7 +2,6 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit } 
 import { CommonModule } from '@angular/common';
 import { GeminiService } from './services/gemini.service';
 import { Page } from './models/page.model';
-import { StorySegment } from './models/story.model';
 
 type Status = 'generating' | 'ready' | 'error';
 
@@ -27,49 +26,41 @@ export class AppComponent implements OnInit {
   isLastPage = computed(() => this.currentPageIndex() === this.totalPages - 1);
 
   ngOnInit(): void {
-    this.generateStoryAndImages();
+    this.generateStory();
   }
 
-  async generateStoryAndImages(): Promise<void> {
+  async generateStory(): Promise<void> {
     this.status.set('generating');
     this.errorMessage.set('');
     this.currentPageIndex.set(0);
     this.pages.set([]);
 
     try {
-      this.generationMessage.set('در حال نوشتن داستان...');
+      this.generationMessage.set('در حال نوشتن یک داستان جدید...');
       const storySegments = await this.geminiService.generateStory(this.totalPages);
 
       if (!storySegments || storySegments.length !== this.totalPages) {
         throw new Error('داستان به طور کامل دریافت نشد.');
       }
       
-      const initialPages: Page[] = storySegments.map(s => ({ text: s.text, imageUrl: '' }));
-      this.pages.set(initialPages);
-      
-      this.status.set('ready'); // Show the book with text first
+      const finalPages: Page[] = [];
 
-      for (let i = 0; i < this.totalPages; i++) {
-        this.generationMessage.set(`در حال نقاشی صفحه ${i + 1} از ${this.totalPages}...`);
-        
-        // Temporarily set status to generating for image loading indication
-        const originalStatus = this.status();
-        if (i > 0) this.status.set('generating');
-        
-        const imageUrl = await this.geminiService.generateImageForStory(storySegments[i].text);
-        
-        this.pages.update(pages => {
-          const newPages = [...pages];
-          newPages[i].imageUrl = imageUrl;
-          return newPages;
+      for (let i = 0; i < storySegments.length; i++) {
+        this.generationMessage.set(`در حال ساخت تصویر ${i + 1} از ${this.totalPages}...`);
+        const segment = storySegments[i];
+        const imageUrl = await this.geminiService.generateImageForStory(segment.text);
+        finalPages.push({
+          text: segment.text,
+          imageUrl: imageUrl,
         });
-
-        if (i > 0) this.status.set(originalStatus);
       }
+
+      this.pages.set(finalPages);
+      this.status.set('ready');
       this.generationMessage.set('کتاب شما آماده است!');
 
     } catch (error) {
-      console.error('Error generating story and images:', error);
+      console.error('Error generating story:', error);
       const message = error instanceof Error ? error.message : 'یک خطای ناشناخته رخ داد.';
       this.errorMessage.set(`متاسفانه مشکلی پیش آمد: ${message}`);
       this.status.set('error');

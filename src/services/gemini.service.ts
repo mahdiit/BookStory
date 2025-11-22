@@ -59,12 +59,12 @@ export class GeminiService {
 
   async generateImageForStory(storyText: string): Promise<string> {
     const prompt = `Vibrant and colorful children's book illustration, in a whimsical and charming style. The scene is based on this text: "${storyText}".
-The main characters are:
-- A cute rabbit in a bright yellow racing car with the number 1 on it.
-- A friendly turtle in a sturdy green racing car with the number 7 on it.
-- A clever cat in a sleek blue racing car with the number 5 on it.
+The main characters are driving cute, cartoonish racing cars inspired by the design of a BMW Z4 sports car.
+- A cute rabbit is in a bright yellow racing car with the number 1 on it.
+- A friendly turtle is in a sturdy green racing car with the number 7 on it.
+- A clever cat is in a sleek blue racing car with the number 5 on it.
 
-The appearance, color, and design of these specific cars MUST remain consistent across all generated images.
+The appearance, color, and design of these specific cars (BMW Z4 inspired, specific colors, and numbers) MUST remain consistent across all generated images.
 Their friends (a bear, skunk, panther, and elephant) might be in the background.
 The art style must be cheerful, friendly, and appealing to young children.
 IMPORTANT: Absolutely no text, letters, or words are allowed in the image. The only numbers visible should be 1, 7, and 5 on their respective cars.`;
