@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
-import { GoogleGenAI, Type } from '@google/genai';
-import { environment } from '../environments/environment';
+import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
 import { StorySegment } from '../models/story.model';
 
 @Injectable({
@@ -10,20 +9,30 @@ export class GeminiService {
   private readonly ai: GoogleGenAI;
 
   constructor() {
-    // IMPORTANT: The API key is injected via environment variables.
-    // Do not hardcode the API key in the code.
-    const apiKey = process.env.API_KEY;
+    // Use the platform-provided GEMINI_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('API_KEY environment variable not set.');
+      throw new Error('GEMINI_API_KEY environment variable not set.');
     }
     this.ai = new GoogleGenAI({ apiKey });
   }
 
   async generateStory(pageCount: number): Promise<StorySegment[]> {
-    const prompt = `یک داستان ${pageCount} قسمتی برای کتاب کودکان بنویس. داستان در مورد مسابقه ماشین‌رانی بین یک خرگوش سریع به نام "تیزپا"، یک لاک‌پشت آرام و مصمم به نام "سنگی" و یک گربه زرنگ به نام "برقی" است. دوستانشان که برای تشویق آمده‌اند شامل یک خرس مهربان به نام "پشمالو"، یک راسوی بازیگوش، یک پلنگ قوی و یک فیل بزرگ هستند. داستان باید مفاهیم مهمی مانند مدیریت خشم وقتی ماشین خراب می‌شود، حس شکست، شادی پیروزی و اهمیت کمک به دوستان در مواقع سختی را به زبان ساده و کودکانه آموزش دهد. هر قسمت از داستان باید برای یک صفحه از کتاب باشد و حدود 50 تا 80 کلمه باشد.`;
+    const prompt = `Write a ${pageCount}-page interactive children's story in Persian (Farsi).
+The story is about a grand animal car race in the "Green Valley".
+Characters:
+1. "Tizpa" (Rabbit): Fast, wears a red racing suit, drives a bright yellow sports car with number 1.
+2. "Sangi" (Turtle): Calm and determined, wears a green helmet, drives a sturdy green off-road car with number 7.
+3. "Barghi" (Cat): Clever and quick, wears a blue scarf, drives a sleek blue electric car with number 5.
+
+Supporting characters: "Pashmalu" (Bear), a playful skunk, a strong panther, and a big elephant are cheering from the sidelines.
+
+Themes: Managing anger when a car breaks down, feeling the sting of loss, the joy of winning, and the importance of helping friends in need.
+Each page should be 50-80 words.
+Return the story as a JSON array of objects with 'page' (number) and 'text' (string).`;
     
     const response = await this.ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -34,11 +43,11 @@ export class GeminiService {
             properties: {
               page: {
                 type: Type.INTEGER,
-                description: 'شماره صفحه',
+                description: 'Page number',
               },
               text: {
                 type: Type.STRING,
-                description: 'متن داستان برای این صفحه',
+                description: 'Story text for this page in Persian',
               },
             },
             required: ['page', 'text'],
@@ -57,33 +66,42 @@ export class GeminiService {
     }
   }
 
-  async generateImageForStory(storyText: string): Promise<string> {
-    const prompt = `Vibrant and colorful children's book illustration, in a whimsical and charming style. The scene is based on this text: "${storyText}".
-The main characters are driving cute, cartoonish racing cars inspired by the design of a BMW Z4 sports car.
-- A cute rabbit is in a bright yellow racing car with the number 1 on it.
-- A friendly turtle is in a sturdy green racing car with the number 7 on it.
-- A clever cat is in a sleek blue racing car with the number 5 on it.
+  async generateImageForStory(storyText: string, pageNumber: number): Promise<string> {
+    // Character Consistency Guide
+    const characterGuide = `
+CHARACTER BIBLE (STRICT ADHERENCE REQUIRED IN EVERY IMAGE):
+1. Tizpa (Rabbit): A WHITE rabbit with long ears. Wearing a RED racing suit. Driving a BRIGHT YELLOW sports car with the number "1" on the side.
+2. Sangi (Turtle): A GREEN turtle with a brown shell. Wearing a GREEN helmet. Driving a CHUNKY GREEN off-road car with the number "7" on the side.
+3. Barghi (Cat): An ORANGE tabby cat with pointy ears. Wearing a BLUE scarf. Driving a SLEEK BLUE electric car with the number "5" on the side.
 
-The appearance, color, and design of these specific cars (BMW Z4 inspired, specific colors, and numbers) MUST remain consistent across all generated images.
-Their friends (a bear, skunk, panther, and elephant) might be in the background.
-The art style must be cheerful, friendly, and appealing to young children.
-IMPORTANT: Absolutely no text, letters, or words are allowed in the image. The only numbers visible should be 1, 7, and 5 on their respective cars.`;
+STYLE: 3D Pixar style animation, highly consistent character design, vibrant colors, cute and friendly.
+`;
 
-    const response = await this.ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt: prompt,
+    const prompt = `${characterGuide}
+SCENE DESCRIPTION: ${storyText}
+This is page ${pageNumber} of the book. 
+CRITICAL INSTRUCTION: Ensure the characters and their specific cars (colors, animal types, and numbers) match the guide EXACTLY. Do not change their colors or cars.
+NO TEXT, LETTERS, OR WORDS in the image except the numbers 1, 7, and 5 on the cars.`;
+
+    const response = await this.ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [{ text: prompt }]
+      },
       config: {
-        numberOfImages: 1,
-        outputMimeType: 'image/jpeg',
-        aspectRatio: '16:9',
+        imageConfig: {
+          aspectRatio: '16:9',
+        },
       },
     });
 
-    if (response.generatedImages && response.generatedImages.length > 0) {
-      const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-      return `data:image/jpeg;base64,${base64ImageBytes}`;
-    } else {
-      throw new Error('Image generation failed.');
+    // Find the image part in the response
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
     }
+
+    throw new Error('Image generation failed: No image data returned.');
   }
 }
